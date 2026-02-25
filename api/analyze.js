@@ -7,14 +7,14 @@ export default async function handler(req, res) {
 
         if (!apiKey) throw new Error("API Key belum diset di Vercel!");
 
-        // GUNAKAN v1 (STABLE) - Bukan v1beta
-        // Dan pastikan nama model tanpa embel-embel versi tambahan
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        // Menggunakan endpoint v1beta untuk akses model terbaru
+        // Nama model disesuaikan dengan Gemini 3 Flash
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${apiKey}`;
 
         const payload = {
             contents: [{
                 parts: [
-                    { text: "Analisis gambar daun ini secara botani. Sebutkan nama tanaman, penyakit, dan solusi pengobatan dalam Bahasa Indonesia." },
+                    { text: "Analisis gambar daun tanaman ini. Berikan diagnosis penyakit dan saran penanganan dalam Bahasa Indonesia." },
                     {
                         inlineData: {
                             mimeType: mime || "image/jpeg",
@@ -22,7 +22,11 @@ export default async function handler(req, res) {
                         }
                     }
                 ]
-            }]
+            }],
+            generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 1000
+            }
         };
 
         const response = await fetch(url, {
@@ -34,17 +38,16 @@ export default async function handler(req, res) {
         const data = await response.json();
 
         if (!response.ok) {
-            // Jika 404 lagi, kita akan berikan respon detail dari Google
             return res.status(response.status).json({ 
                 error: "Google API Reject", 
-                detail: data.error?.message || JSON.stringify(data)
+                detail: data.error?.message || "Model tidak ditemukan atau tidak didukung."
             });
         }
 
-        const analysis = data.candidates?.[0]?.content?.parts?.[0]?.text || "AI tidak memberikan jawaban.";
+        const analysis = data.candidates?.[0]?.content?.parts?.[0]?.text || "AI tidak memberikan respon.";
         return res.status(200).json({ analysis });
 
     } catch (error) {
         return res.status(500).json({ error: "Server Error", detail: error.message });
     }
-}
+} 
