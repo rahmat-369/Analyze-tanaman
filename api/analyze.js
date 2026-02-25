@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-    // Header untuk mengizinkan akses dari frontend (CORS)
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -14,15 +13,19 @@ export default async function handler(req, res) {
         if (!apiKey) throw new Error("API Key belum diset di Vercel!");
         if (!image) throw new Error("Data gambar tidak ditemukan!");
 
-        // Menggunakan model gemini-2.5-flash sesuai hasil diagnostik akunmu
+        // Menggunakan Gemini 2.5 Flash sesuai data list-model akunmu
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
         const payload = {
+            system_instruction: {
+                parts: [{ 
+                    text: "Kamu adalah Pakar Botani AI. Tugasmu memberikan diagnosa tanaman yang profesional, akurat, dan terstruktur. Gunakan Bahasa Indonesia. Gunakan format Markdown: **Nama Tanaman**, **Diagnosa**, dan **Solusi**. Jawablah dengan nada yang membantu namun teknis." 
+                }]
+            },
             contents: [{
+                role: "user",
                 parts: [
-                    { 
-                        text: "Kamu adalah pakar tanaman profesional. Analisis gambar daun ini dan berikan laporan lengkap yang mencakup: 1. Nama Tanaman, 2. Diagnosa Penyakit/Masalah, 3. Langkah Pengobatan/Solusi. Jawab dalam Bahasa Indonesia dengan format yang rapi." 
-                    },
+                    { text: "Tolong analisis gambar daun tanaman ini secara mendalam." },
                     {
                         inlineData: {
                             mimeType: mime || "image/jpeg",
@@ -33,8 +36,7 @@ export default async function handler(req, res) {
             }],
             generationConfig: {
                 temperature: 0.5,
-                // Dinaikkan ke 4096 agar respon panjang tidak terpotong lagi
-                maxOutputTokens: 4096,
+                maxOutputTokens: 4096, // Menghindari respon terpotong
                 topP: 0.95,
                 topK: 64
             }
@@ -55,10 +57,10 @@ export default async function handler(req, res) {
             });
         }
 
-        const analysis = data.candidates?.[0]?.content?.parts?.[0]?.text || "AI tidak memberikan jawaban.";
+        const analysis = data.candidates?.[0]?.content?.parts?.[0]?.text || "AI tidak merespon.";
         return res.status(200).json({ analysis });
 
     } catch (error) {
         return res.status(500).json({ error: "Server Error", detail: error.message });
     }
-}
+            } 
