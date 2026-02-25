@@ -7,13 +7,14 @@ export default async function handler(req, res) {
 
         if (!apiKey) throw new Error("API Key belum diset di Vercel!");
 
-        // GUNAKAN v1beta DAN gemini-1.5-flash-latest
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+        // GUNAKAN v1beta dengan nama model murni "gemini-1.5-flash"
+        // Google terkadang menolak "-latest" jika versi API-nya sangat ketat
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
         const payload = {
             contents: [{
                 parts: [
-                    { text: "Analisis gambar daun ini secara botani. Sebutkan nama tanaman, penyakitnya, dan saran pengobatan dalam Bahasa Indonesia." },
+                    { text: "Analisis gambar daun ini secara detail. Sebutkan nama tanaman, penyakit, dan solusinya dalam Bahasa Indonesia." },
                     {
                         inlineData: {
                             mimeType: mime || "image/jpeg",
@@ -22,14 +23,8 @@ export default async function handler(req, res) {
                     }
                 ]
             }],
-            safetySettings: [
-                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-            ],
             generationConfig: {
-                temperature: 0.7,
+                temperature: 1, // Menaikkan kreativitas sedikit agar tidak kaku
                 maxOutputTokens: 1000
             }
         };
@@ -42,11 +37,12 @@ export default async function handler(req, res) {
 
         const data = await response.json();
 
-        // Debugging jika masih error
         if (!response.ok) {
+            // Jika Google menyarankan ListModels, tampilkan pesan error yang lebih informatif
             return res.status(response.status).json({ 
                 error: "Google API Reject", 
-                detail: data.error?.message || JSON.stringify(data)
+                detail: data.error?.message || "Model tidak dikenali.",
+                hint: "Coba ganti nama model ke gemini-1.5-pro jika flash tidak tersedia."
             });
         }
 
@@ -56,4 +52,4 @@ export default async function handler(req, res) {
     } catch (error) {
         return res.status(500).json({ error: "Server Error", detail: error.message });
     }
-    } 
+            }
