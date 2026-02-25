@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Gunakan POST' });
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     try {
         const { image, mime } = req.body;
@@ -7,14 +7,14 @@ export default async function handler(req, res) {
 
         if (!apiKey) throw new Error("API Key belum diset di Vercel!");
 
-        // Menggunakan endpoint v1beta untuk akses model terbaru
-        // Nama model disesuaikan dengan Gemini 3 Flash
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${apiKey}`;
+        // Kita gunakan gemini-1.5-flash karena ini adalah nama teknis 
+        // yang paling stabil dan didukung untuk generateContent saat ini.
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
         const payload = {
             contents: [{
                 parts: [
-                    { text: "Analisis gambar daun tanaman ini. Berikan diagnosis penyakit dan saran penanganan dalam Bahasa Indonesia." },
+                    { text: "Analisis gambar daun ini. Identifikasi jenis tanaman dan penyakitnya, lalu berikan saran pengobatan dalam Bahasa Indonesia." },
                     {
                         inlineData: {
                             mimeType: mime || "image/jpeg",
@@ -22,11 +22,7 @@ export default async function handler(req, res) {
                         }
                     }
                 ]
-            }],
-            generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 1000
-            }
+            }]
         };
 
         const response = await fetch(url, {
@@ -40,7 +36,7 @@ export default async function handler(req, res) {
         if (!response.ok) {
             return res.status(response.status).json({ 
                 error: "Google API Reject", 
-                detail: data.error?.message || "Model tidak ditemukan atau tidak didukung."
+                detail: data.error?.message || "Model tidak ditemukan."
             });
         }
 
@@ -50,4 +46,4 @@ export default async function handler(req, res) {
     } catch (error) {
         return res.status(500).json({ error: "Server Error", detail: error.message });
     }
-} 
+            }
