@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-    // Header untuk mengizinkan akses dari frontend (CORS)
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -14,9 +13,8 @@ export default async function handler(req, res) {
         if (!apiKey) throw new Error("API Key belum diset di Vercel!");
         if (!image) throw new Error("Data gambar tidak ditemukan!");
 
-        // Kita gunakan endpoint v1beta dengan model gemini-1.5-flash
-        // Berdasarkan log dashboard kamu, ini adalah jalur yang paling mungkin diterima
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        // DISINI PERUBAHANNYA: Menggunakan model gemini-2.5-flash sesuai list-model.json kamu
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
         const payload = {
             contents: [{
@@ -45,7 +43,6 @@ export default async function handler(req, res) {
         const data = await response.json();
 
         if (!response.ok) {
-            // Jika Google menolak, berikan detail error aslinya agar kita tidak menebak lagi
             return res.status(response.status).json({ 
                 error: "Google API Reject", 
                 detail: data.error?.message || JSON.stringify(data)
@@ -58,4 +55,4 @@ export default async function handler(req, res) {
     } catch (error) {
         return res.status(500).json({ error: "Server Error", detail: error.message });
     }
-                }
+}
