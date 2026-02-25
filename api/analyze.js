@@ -7,14 +7,14 @@ export default async function handler(req, res) {
 
         if (!apiKey) throw new Error("API Key belum diset di Vercel!");
 
-        // GUNAKAN v1beta dengan nama model murni "gemini-1.5-flash"
-        // Google terkadang menolak "-latest" jika versi API-nya sangat ketat
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        // GANTI KE gemini-1.5-pro
+        // Ini model paling tinggi, harusnya tersedia di akun kamu
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
 
         const payload = {
             contents: [{
                 parts: [
-                    { text: "Analisis gambar daun ini secara detail. Sebutkan nama tanaman, penyakit, dan solusinya dalam Bahasa Indonesia." },
+                    { text: "Analisis gambar daun ini. Identifikasi tanaman dan penyakitnya, lalu beri saran pengobatan dalam Bahasa Indonesia." },
                     {
                         inlineData: {
                             mimeType: mime || "image/jpeg",
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
                 ]
             }],
             generationConfig: {
-                temperature: 1, // Menaikkan kreativitas sedikit agar tidak kaku
+                temperature: 0.4,
                 maxOutputTokens: 1000
             }
         };
@@ -38,11 +38,9 @@ export default async function handler(req, res) {
         const data = await response.json();
 
         if (!response.ok) {
-            // Jika Google menyarankan ListModels, tampilkan pesan error yang lebih informatif
             return res.status(response.status).json({ 
                 error: "Google API Reject", 
-                detail: data.error?.message || "Model tidak dikenali.",
-                hint: "Coba ganti nama model ke gemini-1.5-pro jika flash tidak tersedia."
+                detail: data.error?.message || "Model tidak ditemukan."
             });
         }
 
@@ -52,4 +50,4 @@ export default async function handler(req, res) {
     } catch (error) {
         return res.status(500).json({ error: "Server Error", detail: error.message });
     }
-            }
+                    }
