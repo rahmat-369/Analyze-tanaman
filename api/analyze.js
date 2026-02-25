@@ -1,49 +1,31 @@
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    const apiKey = process.env.GEMINI_API_KEY;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
 
     try {
-        const { image, mime } = req.body;
-        const apiKey = process.env.GEMINI_API_KEY;
-
-        if (!apiKey) throw new Error("API Key belum diset di Vercel!");
-
-        // Kita gunakan gemini-1.5-flash karena ini adalah nama teknis 
-        // yang paling stabil dan didukung untuk generateContent saat ini.
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
-        const payload = {
-            contents: [{
-                parts: [
-                    { text: "Analisis gambar daun ini. Identifikasi jenis tanaman dan penyakitnya, lalu berikan saran pengobatan dalam Bahasa Indonesia." },
-                    {
-                        inlineData: {
-                            mimeType: mime || "image/jpeg",
-                            data: image
-                        }
-                    }
-                ]
-            }]
-        };
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
+        const response = await fetch(url);
         const data = await response.json();
 
         if (!response.ok) {
             return res.status(response.status).json({ 
-                error: "Google API Reject", 
-                detail: data.error?.message || "Model tidak ditemukan."
+                error: "Gagal mengambil daftar model", 
+                detail: data 
             });
         }
 
-        const analysis = data.candidates?.[0]?.content?.parts?.[0]?.text || "AI tidak memberikan respon.";
-        return res.status(200).json({ analysis });
+        // Ini akan menampilkan semua model yang BISA kamu pakai
+        const availableModels = data.models.map(m => ({
+            name: m.name,
+            displayName: m.displayName,
+            description: m.description,
+            supportedMethods: m.supportedMethods
+        }));
 
+        return res.status(200).json({ 
+            message: "Gunakan salah satu nama model di bawah ini pada kodingan kamu:",
+            models: availableModels 
+        });
     } catch (error) {
-        return res.status(500).json({ error: "Server Error", detail: error.message });
+        return res.status(500).json({ error: error.message });
     }
-            }
+} 
