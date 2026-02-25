@@ -1,5 +1,6 @@
 {
-  "name": "plant-analyzer-api",
-  "version": "1.2.0",
+  "name": "flora-ai-premium",
+  "version": "2.0.0",
+  "description": "Expert Plant Diagnosis AI",
   "dependencies": {}
 }
