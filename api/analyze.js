@@ -7,14 +7,14 @@ export default async function handler(req, res) {
 
         if (!apiKey) throw new Error("API Key belum diset di Vercel!");
 
-        // GANTI KE gemini-1.5-pro
-        // Ini model paling tinggi, harusnya tersedia di akun kamu
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+        // GUNAKAN v1 (STABLE) - Bukan v1beta
+        // Dan pastikan nama model tanpa embel-embel versi tambahan
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
         const payload = {
             contents: [{
                 parts: [
-                    { text: "Analisis gambar daun ini. Identifikasi tanaman dan penyakitnya, lalu beri saran pengobatan dalam Bahasa Indonesia." },
+                    { text: "Analisis gambar daun ini secara botani. Sebutkan nama tanaman, penyakit, dan solusi pengobatan dalam Bahasa Indonesia." },
                     {
                         inlineData: {
                             mimeType: mime || "image/jpeg",
@@ -22,11 +22,7 @@ export default async function handler(req, res) {
                         }
                     }
                 ]
-            }],
-            generationConfig: {
-                temperature: 0.4,
-                maxOutputTokens: 1000
-            }
+            }]
         };
 
         const response = await fetch(url, {
@@ -38,9 +34,10 @@ export default async function handler(req, res) {
         const data = await response.json();
 
         if (!response.ok) {
+            // Jika 404 lagi, kita akan berikan respon detail dari Google
             return res.status(response.status).json({ 
                 error: "Google API Reject", 
-                detail: data.error?.message || "Model tidak ditemukan."
+                detail: data.error?.message || JSON.stringify(data)
             });
         }
 
@@ -50,4 +47,4 @@ export default async function handler(req, res) {
     } catch (error) {
         return res.status(500).json({ error: "Server Error", detail: error.message });
     }
-                    }
+}
