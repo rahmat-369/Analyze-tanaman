@@ -1,4 +1,5 @@
 export default async function handler(req, res) {
+    // Header untuk mengizinkan akses dari frontend (CORS)
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -13,13 +14,15 @@ export default async function handler(req, res) {
         if (!apiKey) throw new Error("API Key belum diset di Vercel!");
         if (!image) throw new Error("Data gambar tidak ditemukan!");
 
-        // DISINI PERUBAHANNYA: Menggunakan model gemini-2.5-flash sesuai list-model.json kamu
+        // Menggunakan model gemini-2.5-flash sesuai hasil diagnostik akunmu
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
         const payload = {
             contents: [{
                 parts: [
-                    { text: "Kamu adalah pakar tanaman. Analisis gambar daun ini: Sebutkan nama tanaman, penyakitnya, dan berikan solusi pengobatan dalam Bahasa Indonesia." },
+                    { 
+                        text: "Kamu adalah pakar tanaman profesional. Analisis gambar daun ini dan berikan laporan lengkap yang mencakup: 1. Nama Tanaman, 2. Diagnosa Penyakit/Masalah, 3. Langkah Pengobatan/Solusi. Jawab dalam Bahasa Indonesia dengan format yang rapi." 
+                    },
                     {
                         inlineData: {
                             mimeType: mime || "image/jpeg",
@@ -29,8 +32,11 @@ export default async function handler(req, res) {
                 ]
             }],
             generationConfig: {
-                temperature: 0.4,
-                maxOutputTokens: 1000
+                temperature: 0.5,
+                // Dinaikkan ke 4096 agar respon panjang tidak terpotong lagi
+                maxOutputTokens: 4096,
+                topP: 0.95,
+                topK: 64
             }
         };
 
