@@ -6,28 +6,28 @@
     <title>Plant Analyzer AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center p-4">
+<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center p-4 font-sans">
 
     <div class="w-full max-w-md bg-slate-800 rounded-2xl shadow-2xl p-6 border border-slate-700">
-        <h1 class="text-2xl font-black text-center mb-2 text-green-400 italic">PLANT DETECT <span class="text-white text-xs px-2 py-1 bg-green-600 rounded">v1.0</span></h1>
-        <p class="text-slate-400 text-center text-sm mb-6">Analisis penyakit daun via Gemini AI</p>
+        <h1 class="text-2xl font-black text-center mb-2 text-green-400">PLANT DETECT AI</h1>
+        <p class="text-slate-400 text-center text-xs mb-6 uppercase tracking-widest">Botany Diagnostic Tool</p>
 
         <input type="file" id="imageInput" accept="image/*" class="hidden">
         <div id="dropZone" onclick="document.getElementById('imageInput').click()" 
-             class="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center cursor-pointer hover:border-green-500 transition-all bg-slate-700/50">
-            <p class="text-4xl mb-2">🌿</p>
-            <p class="text-sm font-medium">Klik untuk pilih gambar dari galeri</p>
+             class="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center cursor-pointer hover:border-green-500 bg-slate-700/30">
+            <p class="text-3xl mb-2">🌿</p>
+            <p class="text-xs text-slate-300">Ambil foto atau pilih dari galeri</p>
         </div>
 
         <div id="previewContainer" class="hidden mt-6">
-            <img id="imagePreview" class="w-full h-56 object-cover rounded-xl border-2 border-slate-600">
-            <button id="analyzeBtn" class="w-full mt-4 bg-green-500 hover:bg-green-600 text-slate-900 font-bold py-3 rounded-xl transition-all uppercase tracking-widest">
+            <img id="imagePreview" class="w-full h-48 object-cover rounded-xl border border-slate-600">
+            <button id="analyzeBtn" class="w-full mt-4 bg-green-500 hover:bg-green-600 text-slate-900 font-bold py-3 rounded-xl uppercase transition-all">
                 Mulai Analisis
             </button>
         </div>
 
         <div id="resultBox" class="hidden mt-6 p-4 bg-slate-900 rounded-xl border border-slate-700">
-            <div id="status" class="text-green-400 font-mono text-sm mb-2 animate-pulse"></div>
+            <div id="status" class="text-green-400 font-mono text-xs mb-2"></div>
             <div id="textContent" class="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap"></div>
         </div>
     </div>
@@ -44,13 +44,9 @@
         input.onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    preview.src = event.target.result;
-                    container.classList.remove('hidden');
-                    resultBox.classList.add('hidden');
-                };
-                reader.readAsDataURL(file);
+                preview.src = URL.createObjectURL(file);
+                container.classList.remove('hidden');
+                resultBox.classList.add('hidden');
             }
         };
 
@@ -58,35 +54,33 @@
             const file = input.files[0];
             if (!file) return;
 
-            // Reset UI
             analyzeBtn.disabled = true;
             analyzeBtn.innerText = "Processing...";
             resultBox.classList.remove('hidden');
             status.innerText = "> Mengompres gambar...";
-            textContent.innerText = "";
 
             try {
-                // Konversi ke Base64 (Resize otomatis oleh browser via canvas jika perlu)
-                const base64Data = await convertToBase64(file);
+                // PROSES KOMPRESI GAMBAR (Penting agar tidak di-reject)
+                const base64Data = await compressImage(file);
                 
-                status.innerText = "> AI sedang berpikir...";
+                status.innerText = "> AI sedang menganalisis...";
                 
                 const response = await fetch('/api/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: base64Data.split(',')[1] })
+                    body: JSON.stringify({ 
+                        image: base64Data.split(',')[1],
+                        mime: "image/jpeg"
+                    })
                 });
 
                 const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || data.error);
 
-                if (response.ok) {
-                    status.innerText = "> Hasil Analisis:";
-                    textContent.innerText = data.analysis;
-                } else {
-                    throw new Error(data.error || "Gagal menghubungi AI");
-                }
+                status.innerText = "> HASIL DIAGNOSIS:";
+                textContent.innerText = data.analysis;
             } catch (err) {
-                status.innerText = "> Error!";
+                status.innerText = "> ERROR TERDETEKSI:";
                 textContent.innerText = err.message;
             } finally {
                 analyzeBtn.disabled = false;
@@ -94,13 +88,26 @@
             }
         };
 
-        // Fungsi bantu untuk handle file
-        function convertToBase64(file) {
-            return new Promise((resolve, reject) => {
+        // FUNGSI KOMPRESI: Mengecilkan gambar ke lebar 800px agar ringan
+        function compressImage(file) {
+            return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = error => reject(error);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800;
+                        const scaleSize = MAX_WIDTH / img.width;
+                        canvas.width = MAX_WIDTH;
+                        canvas.height = img.height * scaleSize;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.7)); // Kualitas 70%
+                    };
+                };
             });
         }
     </script>
