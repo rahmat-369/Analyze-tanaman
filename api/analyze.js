@@ -9,33 +9,31 @@ export default async function handler(req, res) {
     try {
         const { image, mime, plantName } = req.body;
         
-        // Mengambil kumpulan API Key dari Environment Variable Vercel
-        const keys = [];
-        if (process.env.GEMINI_API_KEY) keys.push(process.env.GEMINI_API_KEY);
-        if (process.env.GEMINI_API_KEY_2) keys.push(process.env.GEMINI_API_KEY_2);
-        if (process.env.GEMINI_API_KEY_3) keys.push(process.env.GEMINI_API_KEY_3);
+        // 1. Siapkan Array untuk 3 API Key
+        const keys = [
+            process.env.GEMINI_API_KEY,
+            process.env.GEMINI_API_KEY_2,
+            process.env.GEMINI_API_KEY_3
+        ].filter(Boolean); // Hanya ambil key yang terisi di Vercel
 
-        if (keys.length === 0) throw new Error("Tidak ada API Key yang diset di Vercel!");
+        if (keys.length === 0) throw new Error("API Key belum diset di Vercel!");
         if (!image) throw new Error("Data gambar tidak ditemukan!");
 
-        // Prompt mendukung Daun, Batang, dan Akar
-        let promptText = "Tolong analisis gambar bagian tanaman ini (bisa berupa daun, batang, kulit kayu, atau akar) secara mendalam untuk mendeteksi penyakit, hama, atau pembusukan.";
-        if (plantName && plantName.trim() !== "") {
-            promptText += `\nTanaman ini diidentifikasi pengguna sebagai: ${plantName}. Tolong fokuskan analisis pada penyakit yang sering menyerang tanaman ini berdasarkan visual yang terlihat. Pastikan hasilkan solusi dengan akurat dan kesimpulan`;
+        // 2. Prompt Multimodal (Daun, Batang, Akar)
+        let promptText = "Tolong analisis gambar bagian tanaman ini (bisa berupa daun, batang, atau akar) secara mendalam.";
+        if (plantName) {
+            promptText += ` Pengguna menyebut ini adalah tanaman: ${plantName}.`;
         }
 
         const payload = {
             system_instruction: {
                 parts: [{ 
-                    text: "Kamu adalah Pakar Botani AI. Analisis gambar tanaman yang diberikan (daun, batang, atau akar). Berikan diagnosa profesional dalam Bahasa Indonesia. Format wajib:\n**Nama Tanaman**\n**Diagnosa Penyakit**\n**Solusi Pengobatan**\n\nJawab dengan paragraf yang rapi dan mudah dibaca. Di bagian PALING AKHIR jawabanmu, buat baris baru dengan tulisan persis '---REFERENSI---', lalu di bawahnya berikan 2-3 link URL valid terkait penyakit tersebut dalam format Markdown standar seperti ini: [Nama Web](https://url-web.com)." 
+                    text: "Kamu adalah Pakar Botani AI. Analisis gambar (daun/batang/akar). Berikan diagnosa dalam Bahasa Indonesia. Format wajib:\n**Nama Tanaman**\n**Diagnosa Penyakit**\n**Solusi Pengobatan**\n\nDi bagian PALING AKHIR, buat baris '---REFERENSI---', lalu berikan 2-3 link sumber terpercaya dalam format Markdown: [Nama Web](https://link-web.com)." 
                 }]
             },
             contents: [{
                 role: "user",
-                parts: [
-                    { text: promptText },
-                    { inlineData: { mimeType: mime || "image/jpeg", data: image } }
-                ]
+                parts: [{ text: promptText }, { inlineData: { mimeType: mime || "image/jpeg", data: image } }]
             }],
             generationConfig: { temperature: 0.4, maxOutputTokens: 4096 }
         };
@@ -44,45 +42,39 @@ export default async function handler(req, res) {
         let responseData = null;
         let isSuccess = false;
 
-        // SISTEM ROTASI API KEY (Auto-Failover)
+        // 3. Sistem Rotasi (Mencoba Key 1, 2, 3 berurutan jika limit)
         for (let i = 0; i < keys.length; i++) {
-            const currentKey = keys[i];
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${currentKey}`;
-            
             try {
-                const response = await fetch(url, {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${keys[i]}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
 
                 const data = await response.json();
-
-                if (!response.ok) {
-                    if (response.status === 429) {
-                        lastError = `Kuota Key ${i + 1} Habis. Mencoba key berikutnya...`;
-                        continue; // Lanjut ke key berikutnya
-                    } else {
-                        throw new Error(data.error?.message || "Google API Error");
-                    }
+                
+                // Jika error 429 (Too Many Requests), lanjut ke Key berikutnya
+                if (response.status === 429) { 
+                    lastError = `Key ${i+1} Limit, mencoba key selanjutnya...`; 
+                    continue; 
                 }
+                
+                if (!response.ok) throw new Error(data.error?.message || "API Error");
 
                 responseData = data;
                 isSuccess = true;
-                break; // Berhasil, keluar dari loop
+                break; // Berhasil, keluar dari perulangan
             } catch (err) {
                 lastError = err.message;
             }
         }
 
-        if (!isSuccess) {
-            return res.status(500).json({ error: "Semua API Key kehabisan kuota atau gagal", detail: lastError });
-        }
+        if (!isSuccess) return res.status(500).json({ error: "Semua API Key kehabisan kuota", detail: lastError });
 
-        const analysis = responseData.candidates?.[0]?.content?.parts?.[0]?.text || "AI tidak merespon.";
+        const analysis = responseData.candidates?.[0]?.content?.parts?.[0]?.text || "AI Tidak Merespon.";
         return res.status(200).json({ analysis });
 
     } catch (error) {
         return res.status(500).json({ error: "Server Error", detail: error.message });
     }
-    }
+                    } 
