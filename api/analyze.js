@@ -23,7 +23,7 @@ export default async function handler(req, res) {
         const payload = {
             system_instruction: {
                 parts: [{ 
-                    text: "Kamu adalah Pakar Botani AI. Berikan diagnosa profesional dalam Bahasa Indonesia. Format wajib:\n**Nama Tanaman**\n**Diagnosa Penyakit**\n**Solusi Pengobatan**\n\nDi bagian PALING AKHIR jawabanmu, buat baris baru dengan tulisan persis '---REFERENSI---' (tanpa tanda kutip), lalu di bawahnya berikan 2-3 link URL artikel atau sumber website nyata yang membahas penyakit tersebut." 
+                    text: "Kamu adalah Pakar Botani AI. Berikan diagnosa profesional dalam Bahasa Indonesia. Format wajib:\n**Nama Tanaman**\n**Diagnosa Penyakit**\n**Solusi Pengobatan**\n\nJawab dengan paragraf yang rapi dan mudah dibaca. Di bagian PALING AKHIR jawabanmu, buat baris baru dengan tulisan persis '---REFERENSI---', lalu di bawahnya berikan 2-3 link URL valid terkait penyakit tersebut dalam format Markdown standar seperti ini: [Nama Web](https://url-web.com)." 
                 }]
             },
             contents: [{
@@ -51,4 +51,4 @@ export default async function handler(req, res) {
     } catch (error) {
         return res.status(500).json({ error: "Server Error", detail: error.message });
     }
-                        }
+    }
