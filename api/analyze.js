@@ -13,17 +13,19 @@ export default async function handler(req, res) {
         if (!apiKey) throw new Error("API Key belum diset di Vercel!");
         if (!image) throw new Error("Data gambar tidak ditemukan!");
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        // URL API Gemini 1.5 Flash (Mendukung Grounding)
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
         let promptText = "Tolong analisis gambar daun tanaman ini secara mendalam.";
         if (plantName && plantName.trim() !== "") {
-            promptText += `\nTanaman ini diidentifikasi pengguna sebagai: ${plantName}. Tolong fokuskan analisis pada penyakit yang sering menyerang tanaman ini.`;
+            promptText += `\nIdentitas tanaman: ${plantName}. Cari referensi dari web terpercaya mengenai gejala pada tanaman ini.`;
         }
+        promptText += "\nBerikan diagnosa akurat dan solusi pengobatan yang valid berdasarkan data terbaru di internet.";
 
         const payload = {
             system_instruction: {
                 parts: [{ 
-                    text: "Kamu adalah Pakar Botani AI. Berikan diagnosa profesional dalam Bahasa Indonesia. Format wajib: **Nama Tanaman**, **Diagnosa Penyakit**, dan **Solusi Pengobatan**. Jawab dengan nada teknis namun mudah dimengerti." 
+                    text: "Kamu adalah Pakar Botani AI Terpercaya. Tugasmu memberikan diagnosa yang didasarkan pada fakta riil dari internet. Wajib menyertakan sumber jika ada. Format: **Nama Tanaman**, **Diagnosa Penyakit**, dan **Solusi Pengobatan** (kimia/organik)." 
                 }]
             },
             contents: [{
@@ -33,7 +35,10 @@ export default async function handler(req, res) {
                     { inlineData: { mimeType: mime || "image/jpeg", data: image } }
                 ]
             }],
-            generationConfig: { temperature: 0.4, maxOutputTokens: 4096 }
+            tools: [{
+                google_search_retrieval: {} // INI FITUR PENCARIAN AGAR TIDAK HALU
+            }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 4096 } // Temperature rendah agar lebih fokus pada data asli
         };
 
         const response = await fetch(url, {
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error?.message || "Google API Error");
 
-        const analysis = data.candidates?.[0]?.content?.parts?.[0]?.text || "AI tidak merespon.";
+        const analysis = data.candidates?.[0]?.content?.parts?.[0]?.text || "AI tidak menemukan referensi yang cukup.";
         return res.status(200).json({ analysis });
 
     } catch (error) {
