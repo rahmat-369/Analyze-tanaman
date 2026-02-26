@@ -18,13 +18,13 @@ export default async function handler(req, res) {
             process.env.GEMINI_API_KEY,
             process.env.GEMINI_API_KEY_2,
             process.env.GEMINI_API_KEY_3
-        ].filter(Boolean); // Hanya ambil key yang terisi di Vercel
+        ].filter(Boolean);
 
         if (keys.length === 0) throw new Error("API Key belum diset di Environment Variable Vercel!");
         if (!image) throw new Error("Data gambar tidak ditemukan!");
 
         // Menyusun prompt dinamis jika user memasukkan nama tanaman
-        let promptText = "Tolong analisis gambar daun, batang, atau akar tanaman ini secara mendalam. Berikan solusi secara akurat dan kesimpulan ";
+        let promptText = "Tolong analisis gambar daun, batang, atau akar tanaman ini secara mendalam.";
         if (plantName && plantName.trim() !== "") {
             promptText += `\nSebagai informasi tambahan dari pengguna, ini adalah tanaman: ${plantName}. Tolong fokuskan analisis pada penyakit yang sering menyerang tanaman ini jika visualnya mendukung.`;
         }
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
         const payload = {
             system_instruction: {
                 parts: [{ 
-                    text: "Kamu adalah Pakar Botani AI. Tugasmu memberikan diagnosa tanaman yang profesional, akurat, dan terstruktur. Gunakan Bahasa Indonesia. Gunakan format Markdown: **Nama Tanaman**, **Diagnosa Penyakit**, dan **Solusi Pengobatan**. Jawablah dengan nada yang membantu namun teknis.\n\nDi bagian PALING AKHIR, buat baris '---REFERENSI---', lalu berikan 2-3 link sumber terpercaya dalam format Markdown: [Nama Web](https://link-web.com)." 
+                    text: "Kamu adalah Pakar Botani AI. Tugasmu memberikan diagnosa tanaman yang profesional, akurat, dan terstruktur. Analisis bisa berupa daun, batang, atau akar. Gunakan Bahasa Indonesia. Gunakan format Markdown: **Nama Tanaman**, **Diagnosa Penyakit**, dan **Solusi Pengobatan**. Jawablah dengan nada yang membantu namun teknis.\n\nDi bagian PALING AKHIR, buat baris '---REFERENSI---', lalu berikan 2-3 link sumber terpercaya dalam format Markdown: [Nama Web](https://link-web.com)." 
                 }]
             },
             contents: [{
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
                 ]
             }],
             generationConfig: {
-                temperature: 0.4, // Sedikit diturunkan agar lebih analitis dan akurat
+                temperature: 0.4,
                 maxOutputTokens: 4096,
                 topP: 0.95,
                 topK: 64
@@ -98,4 +98,4 @@ export default async function handler(req, res) {
     } catch (error) {
         return res.status(500).json({ error: "Server Error", detail: error.message });
     }
-                        } 
+                }
