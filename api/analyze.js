@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     try {
         const { image, mime, plantName } = req.body;
         
-        // 1. Siapkan Array untuk 3 API Key (Sistem Rotasi)
+        // 1. Siapkan Array untuk 3 API Key (Sistem Rotasi Anti Limit)
         const keys = [
             process.env.GEMINI_API_KEY,
             process.env.GEMINI_API_KEY_2,
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
         const payload = {
             system_instruction: {
                 parts: [{ 
-                    text: "Kamu adalah Pakar Botani AI. Tugasmu memberikan diagnosa tanaman yang profesional, akurat, dan terstruktur. Analisis bisa berupa daun, batang, atau akar. Gunakan Bahasa Indonesia. Gunakan format Markdown: **Nama Tanaman**, **Diagnosa Penyakit**, dan **Solusi Pengobatan**. Jawablah dengan nada yang membantu namun teknis.\n\nDi bagian PALING AKHIR, buat baris '---REFERENSI---', lalu berikan 2-3 link sumber terpercaya dalam format Markdown: [Nama Web](https://link-web.com)." 
+                    text: "Kamu adalah Pakar Botani AI. Tugasmu memberikan diagnosa tanaman yang profesional, akurat, dan terstruktur. Analisis bisa berupa daun, batang, atau akar. Gunakan Bahasa Indonesia. Gunakan format Markdown: **Nama Tanaman**, **Diagnosa Penyakit**, dan **Solusi Pengobatan**. Jawablah dengan nada yang membantu namun teknis.\n\nDi bagian PALING AKHIR, buat teks '---REFERENSI---', lalu WAJIB berikan 2-3 link sumber artikel/web terpercaya. Format link WAJIB menggunakan Markdown murni seperti ini: [Nama Website](https://link-website-sumber.com)." 
                 }]
             },
             contents: [{
@@ -98,4 +98,4 @@ export default async function handler(req, res) {
     } catch (error) {
         return res.status(500).json({ error: "Server Error", detail: error.message });
     }
-                }
+                    }
