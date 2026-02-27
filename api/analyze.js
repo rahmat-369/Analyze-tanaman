@@ -13,12 +13,12 @@ export default async function handler(req, res) {
     try {
         const { image, mime, plantName } = req.body;
         
-        // 1. Siapkan Array untuk 3 API Key (Sistem Rotasi Anti Limit 429)
+        // 1. Siapkan Array untuk 3 API Key (Sistem Rotasi Anti Limit)
         const keys = [
             process.env.GEMINI_API_KEY,
             process.env.GEMINI_API_KEY_2,
             process.env.GEMINI_API_KEY_3
-        ].filter(Boolean); // Hanya ambil key yang terisi di Vercel
+        ].filter(Boolean);
 
         if (keys.length === 0) throw new Error("API Key belum diset di Environment Variable Vercel!");
         if (!image) throw new Error("Data gambar tidak ditemukan!");
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
         const payload = {
             system_instruction: {
                 parts: [{ 
-                    text: "Kamu adalah Pakar Botani AI. Tugasmu memberikan diagnosa tanaman yang profesional, akurat, dan terstruktur. Analisis bisa berupa daun, batang, atau akar. Gunakan Bahasa Indonesia. Gunakan format Markdown: **Nama Tanaman**, **Diagnosa Penyakit**, dan **Solusi Pengobatan**. Jawablah dengan nada yang membantu namun teknis.\n\nDi bagian PALING AKHIR, buat baris '---REFERENSI---', lalu berikan 2-3 link sumber terpercaya. Format link WAJIB: [Nama Website](https://link-website-sumber.com)." 
+                    text: "Kamu adalah Pakar Botani AI. Tugasmu memberikan diagnosa tanaman yang profesional, akurat, dan terstruktur. Gunakan Bahasa Indonesia.\n\nGunakan format Markdown utama: **Nama Tanaman**, **Diagnosa Penyakit**, dan **Solusi Pengobatan**.\n\nSetelah solusi pengobatan, buat baris ini: \n---STATISTIK---\nLalu berikan metrik probabilitas dengan format 'Nama Penyakit/Metrik: Nilai%'. Contoh: \nKeyakinan AI: 95%\nBlight: 80%\nBlast: 10%\n\nTerakhir, buat baris:\n---REFERENSI---\ndan WAJIB berikan 2-3 link sumber terpercaya dalam format Markdown seperti: [Nama Website](https://link-website-sumber.com)." 
                 }]
             },
             contents: [{
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
                 ]
             }],
             generationConfig: {
-                temperature: 0.4, // Sedikit diturunkan agar lebih analitis dan akurat
+                temperature: 0.4, 
                 maxOutputTokens: 4096,
                 topP: 0.95,
                 topK: 64
@@ -98,4 +98,4 @@ export default async function handler(req, res) {
     } catch (error) {
         return res.status(500).json({ error: "Server Error", detail: error.message });
     }
-    } 
+            }
