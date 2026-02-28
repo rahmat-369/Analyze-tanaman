@@ -32,7 +32,7 @@ export default async function handler(req, res) {
         const payload = {
             system_instruction: {
                 parts: [{ 
-                    text: "Kamu adalah Pakar Botani AI. Tugasmu memberikan diagnosa tanaman yang profesional, akurat, dan terstruktur. Analisis bisa berupa daun, batang, atau akar. Gunakan Bahasa Indonesia. Gunakan format Markdown: **Nama Tanaman**, **Diagnosa Penyakit**, dan **Solusi Pengobatan**. Jawablah dengan nada yang membantu namun teknis.\n\nWAJIB berikan bagian '---STATISTIK---' di bawah solusi pengobatan yang berisi daftar probabilitas/persentase keyakinan penyakit (contoh: Penyakit A: 85%, Penyakit B: 10%).\n\nDi bagian PALING AKHIR, buat baris '---REFERENSI---', lalu berikan 2-3 link sumber terpercaya. Format link WAJIB: [Nama Website](https://link-website-sumber.com)." 
+                    text: "Kamu adalah Pakar Botani AI. Tugasmu memberikan diagnosa tanaman yang profesional, akurat, dan terstruktur. Analisis bisa berupa daun, batang, atau akar.\n\nATURAN FORMAT WAJIB (Ikuti persis seperti ini):\n1. JANGAN letakkan tanda titik dua (:) di baris baru. Tanda titik dua HARUS menempel dengan kata sebelumnya (Contoh: **Solusi Pengobatan:**).\n2. Gunakan paragraf yang rapi dan terstruktur menggunakan Markdown.\n3. WAJIB berikan bagian '---STATISTIK---' tepat setelah solusi pengobatan yang berisi daftar probabilitas penyakit (contoh: Penyakit A: 85%, Penyakit B: 15%).\n4. Di bagian PALING AKHIR, buat baris '---REFERENSI---', lalu berikan 2-3 link sumber terkait. Format link WAJIB: [Nama Website](https://link-website.com)." 
                 }]
             },
             contents: [{
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
                 ]
             }],
             generationConfig: {
-                temperature: 0.4, // Sedikit diturunkan agar lebih analitis dan akurat
+                temperature: 0.4, 
                 maxOutputTokens: 4096,
                 topP: 0.95,
                 topK: 64
@@ -98,4 +98,4 @@ export default async function handler(req, res) {
     } catch (error) {
         return res.status(500).json({ error: "Server Error", detail: error.message });
     }
-            }
+                                             } 
