@@ -1,3 +1,5 @@
+import { createClient } from '@supabase/supabase-js';
+
 export default async function handler(req, res) {
     // Pengaturan CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,43 +13,59 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Gunakan method POST' });
 
     try {
-        const { action, password, is_maintenance, maintenance_reason, notification } = req.body;
+        const { action, password, is_maintenance, maintenance_reason, admin_message } = req.body;
         
-        // Mengambil password dari Environment Variables Vercel
+        // Cek Keamanan
         const validPassword = process.env.ADMIN_PASSWORD;
-
-        // Validasi jika ADMIN_PASSWORD belum dibuat di Vercel
         if (!validPassword) {
             return res.status(500).json({ error: "Variabel ADMIN_PASSWORD belum diset di Vercel!" });
         }
-
-        // Cek kecocokan password
         if (password !== validPassword) {
             return res.status(401).json({ error: "Password Admin Salah!" });
         }
 
-        // INISIALISASI MEMORI GLOBAL (Pengganti Database sementara)
-        if (!global.systemState) {
-            global.systemState = {
-                is_maintenance: false,
-                maintenance_reason: "",
-                notification: ""
-            };
+        // Setup Koneksi Supabase
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+            return res.status(500).json({ error: "Supabase credentials belum diset di Vercel!" });
         }
 
-        // Logika berdasarkan aksi dari frontend admin
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        // Eksekusi berdasarkan instruksi frontend
         if (action === 'login') {
-            // Mengembalikan status saat ini agar switch & form otomatis terisi
-            return res.status(200).json(global.systemState);
+            const { data, error } = await supabase.from('web_config').select('*').limit(1).single();
+            if (error) throw error;
+            return res.status(200).json(data || {});
         } 
         else if (action === 'set_maintenance') {
-            global.systemState.is_maintenance = is_maintenance;
-            global.systemState.maintenance_reason = maintenance_reason || "";
-            return res.status(200).json({ success: true, state: global.systemState });
+            // Update database di row ID = 1
+            const { data, error } = await supabase
+                .from('web_config')
+                .update({ 
+                    is_maintenance: is_maintenance, 
+                    maintenance_reason: maintenance_reason || "" 
+                })
+                .eq('id', 1)
+                .select();
+                
+            if (error) throw error;
+            return res.status(200).json({ success: true, data });
         }
         else if (action === 'set_notification') {
-            global.systemState.notification = notification || "";
-            return res.status(200).json({ success: true, state: global.systemState });
+            // Update database di row ID = 1
+            const { data, error } = await supabase
+                .from('web_config')
+                .update({ 
+                    admin_message: admin_message || "" 
+                })
+                .eq('id', 1)
+                .select();
+
+            if (error) throw error;
+            return res.status(200).json({ success: true, data });
         }
         else {
             return res.status(400).json({ error: "Action tidak dikenali" });
@@ -56,4 +74,4 @@ export default async function handler(req, res) {
     } catch (error) {
         return res.status(500).json({ error: "Server Error", detail: error.message });
     }
-        } 
+} 
