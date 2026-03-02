@@ -15,6 +15,10 @@
     {
       "source": "/",
       "destination": "/welcome.html"
+    },
+    {
+      "source": "/index",
+      "destination": "/index.html"
     }
   ]
 }
