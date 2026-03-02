@@ -5,8 +5,16 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "source": "/admin",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/welcome",
+      "destination": "/welcome.html"
+    },
+    {
+      "source": "/",
+      "destination": "/welcome.html"
     }
   ]
 }
