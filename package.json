@@ -2,5 +2,7 @@
   "name": "flora-ai-premium",
   "version": "2.0.0",
   "description": "Expert Plant Diagnosis AI",
-  "dependencies": {}
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  }
 }
