@@ -24,15 +24,26 @@ export default async function handler(req, res) {
         if (!image) throw new Error("Data gambar tidak ditemukan!");
 
         // Menyusun prompt dinamis jika user memasukkan nama tanaman
-        let promptText = "Tolong analisis gambar daun, batang, atau akar tanaman ini secara mendalam.";
+        let promptText = "Analisis gambar bagian tanaman (daun, batang, akar, bunga, atau buah) ini secara mendalam.";
         if (plantName && plantName.trim() !== "") {
-            promptText += `\nSebagai informasi tambahan dari pengguna, ini adalah tanaman: ${plantName}. Tolong fokuskan analisis pada penyakit yang sering menyerang tanaman ini jika visualnya mendukung.`;
+            promptText += `\nUser menyebut ini sebagai: ${plantName}. Identifikasi penyakit atau hama yang menyerang bagian tersebut jika ada.`;
         }
 
         const payload = {
             system_instruction: {
                 parts: [{ 
-                    text: "Kamu adalah Pakar Botani AI. Tugasmu memberikan diagnosa tanaman yang profesional, akurat, dan terstruktur. Analisis bisa berupa daun, batang, atau akar.\n\nATURAN FORMAT WAJIB (Ikuti persis seperti ini):\n1. JANGAN letakkan tanda titik dua (:) di baris baru. Tanda titik dua HARUS menempel dengan kata sebelumnya (Contoh: **Solusi Pengobatan:**).\n2. Gunakan paragraf yang rapi dan terstruktur menggunakan Markdown.\n3. WAJIB berikan bagian '---STATISTIK---' tepat setelah solusi pengobatan yang berisi daftar probabilitas penyakit (contoh: Penyakit A: 85%, Penyakit B: 15%).\n4. Di bagian PALING AKHIR, buat baris '---REFERENSI---', lalu berikan 2-3 link sumber terkait. Format link WAJIB: [Nama Website](https://link-website.com)." 
+                    text: `Kamu adalah Pakar Botani, Pomologi (Pakar Buah), dan Florikultura (Pakar Bunga) AI tingkat global.
+
+TUGAS UTAMA DAN FILTER (WAJIB DIIKUTI):
+1. Cek apakah gambar ini berisi bagian dari tanaman, daun, bunga, atau buah.
+2. JIKA GAMBAR ADALAH: Manusia, wajah, hewan, benda mati (kursi, kendaraan, dll), atau gambar random yang tidak ada hubungannya dengan flora, BERHENTI SEGERA. Jawab HANYA dengan kalimat ini: "ERROR_INVALID_IMAGE: Maaf, sistem Flora.AI hanya dapat mendeteksi tanaman, bunga, dan buah. Harap unggah foto yang relevan."
+3. JIKA GAMBAR VALID (Tanaman/Bunga/Buah), lanjutkan ke analisis mendalam.
+
+ATURAN FORMAT OUTPUT ANALISIS (JIKA GAMBAR VALID):
+1. JANGAN letakkan tanda titik dua (:) di baris baru. Tanda titik dua HARUS menempel dengan kata sebelumnya (Contoh: **Solusi Pengobatan:**).
+2. Gunakan paragraf yang rapi dan terstruktur menggunakan Markdown.
+3. WAJIB berikan bagian '---STATISTIK---' tepat setelah solusi pengobatan yang berisi daftar probabilitas deteksi penyakit/kategori (contoh: Antraknosa Buah: 85%, Karat Daun: 15%).
+4. Di bagian PALING AKHIR, buat baris '---REFERENSI---'. JANGAN membuat link URL palsu/mati. Sebagai gantinya, berikan daftar istilah ilmiah (Latin) dari tanaman atau penyakit tersebut dan instruksikan pengguna untuk mencarinya secara mandiri di Google Scholar atau jurnal pertanian terpercaya.`
                 }]
             },
             contents: [{
@@ -48,10 +59,10 @@ export default async function handler(req, res) {
                 ]
             }],
             generationConfig: {
-                temperature: 0.4, 
-                maxOutputTokens: 4096,
-                topP: 0.95,
-                topK: 64
+                temperature: 0.2, // Sengaja direndahkan agar AI lebih disiplin memfilter gambar spam
+                maxOutputTokens: 2048,
+                topP: 0.8,
+                topK: 40
             }
         };
 
@@ -93,9 +104,16 @@ export default async function handler(req, res) {
         if (!isSuccess) return res.status(500).json({ error: "Semua API Key kehabisan kuota atau error", detail: lastError });
 
         const analysis = responseData.candidates?.[0]?.content?.parts?.[0]?.text || "AI tidak merespon dengan teks yang valid.";
+        
+        // Cek jika gambar ditolak oleh AI (Filter SPAM)
+        if (analysis.includes("ERROR_INVALID_IMAGE")) {
+            const cleanError = analysis.replace("ERROR_INVALID_IMAGE:", "").trim();
+            return res.status(400).json({ error: cleanError });
+        }
+
         return res.status(200).json({ analysis });
 
     } catch (error) {
         return res.status(500).json({ error: "Server Error", detail: error.message });
     }
-            }
+            } 
