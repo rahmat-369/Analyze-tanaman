@@ -24,7 +24,7 @@ export default async function handler(req, res) {
         if (!image) throw new Error("Data gambar tidak ditemukan!");
 
         // Menyusun prompt dinamis jika user memasukkan nama tanaman
-        let promptText = "Analisis gambar bagian tanaman (daun, batang, akar, bunga, atau buah) ini secara mendalam.";
+        let promptText = "Analisis gambar bagian flora (akar, batang, daun, bunga, atau buah) ini secara mendalam.";
         if (plantName && plantName.trim() !== "") {
             promptText += `\nUser menyebut ini sebagai: ${plantName}. Identifikasi penyakit atau hama yang menyerang bagian tersebut jika ada.`;
         }
@@ -32,18 +32,31 @@ export default async function handler(req, res) {
         const payload = {
             system_instruction: {
                 parts: [{ 
-                    text: `Kamu adalah Pakar Botani, Pomologi (Pakar Buah), dan Florikultura (Pakar Bunga) AI tingkat global.
+                    text: `Kamu adalah Flora Scan AI, Pakar Botani, Pomologi, dan Florikultura tingkat global.
 
 TUGAS UTAMA DAN FILTER (WAJIB DIIKUTI):
-1. Cek apakah gambar ini berisi bagian dari tanaman, daun, bunga, atau buah.
-2. JIKA GAMBAR ADALAH: Manusia, wajah, hewan, benda mati (kursi, kendaraan, dll), atau gambar random yang tidak ada hubungannya dengan flora, BERHENTI SEGERA. Jawab HANYA dengan kalimat ini: "ERROR_INVALID_IMAGE: Maaf, sistem Flora.AI hanya dapat mendeteksi tanaman, bunga, dan buah. Harap unggah foto yang relevan."
-3. JIKA GAMBAR VALID (Tanaman/Bunga/Buah), lanjutkan ke analisis mendalam.
+1. Cek apakah gambar berisi bagian flora (akar, batang, daun, bunga, atau buah).
+2. JIKA GAMBAR ADALAH: Manusia, wajah, hewan, benda mati, atau gambar acak non-tanaman, BERHENTI SEGERA. Jawab HANYA dengan: "ERROR_INVALID_IMAGE: Maaf, Flora Scan AI hanya dapat mendeteksi flora (akar, batang, daun, bunga, buah). Harap unggah foto yang relevan."
+3. JIKA GAMBAR VALID, berikan diagnosa yang sangat mendalam.
 
-ATURAN FORMAT OUTPUT ANALISIS (JIKA GAMBAR VALID):
-1. JANGAN letakkan tanda titik dua (:) di baris baru. Tanda titik dua HARUS menempel dengan kata sebelumnya (Contoh: **Solusi Pengobatan:**).
-2. Gunakan paragraf yang rapi dan terstruktur menggunakan Markdown.
-3. WAJIB berikan bagian '---STATISTIK---' tepat setelah solusi pengobatan yang berisi daftar probabilitas deteksi penyakit/kategori (contoh: Antraknosa Buah: 85%, Karat Daun: 15%).
-4. Di bagian PALING AKHIR, buat baris '---REFERENSI---'. JANGAN membuat link URL palsu/mati. Sebagai gantinya, berikan daftar istilah ilmiah (Latin) dari tanaman atau penyakit tersebut dan instruksikan pengguna untuk mencarinya secara mandiri di Google Scholar atau jurnal pertanian terpercaya.`
+WAJIB IKUTI STRUKTUR INI SECARA BERURUTAN (JANGAN DIKURANGI):
+1. IDENTIFIKASI & GEJALA: Sebutkan nama tanaman, bagian yang terdampak, dan jelaskan detail gejalanya.
+2. DIAGNOSA PENYAKIT: Berikan nama penyakit/hama dan penyebab biologisnya.
+3. SOLUSI & REKOMENDASI OBAT: Berikan langkah organik dan kimiawi. JIKA menyarankan obat/bahan kimia (misal: Fungisida Mankozeb, Insektisida Abamektin), KAMU WAJIB MENJELASKAN FUNGSI SPESIFIK DARI OBAT TERSEBUT (contoh: "...berfungsi untuk menghentikan penyebaran spora pada jaringan...").
+    
+4. ---STATISTIK---
+Bagian ini WAJIB ADA. Berikan daftar probabilitas penyakit dalam persentase.
+Contoh:
+Penyakit A: 85%
+Penyakit B: 10%
+    
+5. ---REFERENSI---
+Bagian ini WAJIB ADA. Berikan istilah ilmiah (Latin) penyakit/hama. JANGAN membuat link URL palsu. Berikan instruksi untuk mencari istilah tersebut di Google Scholar.
+    
+6. ---DISCLAIMER---
+Di bagian PALING AKHIR, berikan peringatan persis seperti ini: "⚠️ Peringatan: Diagnosa AI ini bersifat referensi awal. Harap lakukan validasi silang (cross-check) mencari info lebih lanjut atau konsultasikan dengan penyuluh pertanian setempat sebelum mengaplikasikan bahan kimia."
+
+CATATAN: JANGAN letakkan tanda titik dua (:) di baris baru. Tanda titik dua HARUS menempel di akhir kata. Gunakan Markdown.`
                 }]
             },
             contents: [{
@@ -59,10 +72,10 @@ ATURAN FORMAT OUTPUT ANALISIS (JIKA GAMBAR VALID):
                 ]
             }],
             generationConfig: {
-                temperature: 0.2, // Sengaja direndahkan agar AI lebih disiplin memfilter gambar spam
-                maxOutputTokens: 2048,
-                topP: 0.8,
-                topK: 40
+                temperature: 0.4, // Sedikit diturunkan agar lebih akurat soal nama obat
+                maxOutputTokens: 4096, // Memastikan analisis panjang tidak terpotong
+                topP: 0.95,
+                topK: 64
             }
         };
 
