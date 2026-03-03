@@ -12,7 +12,6 @@ export default async function handler(req, res) {
     try {
         // Ambil credential dari Environment Variable Vercel
         const supabaseUrl = process.env.SUPABASE_URL;
-        // Disarankan menggunakan Service Role Key untuk bypass RLS (Row Level Security)
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
         if (!supabaseUrl || !supabaseKey) {
@@ -21,11 +20,11 @@ export default async function handler(req, res) {
 
         const supabase = createClient(supabaseUrl, supabaseKey);
 
-        // Mengambil baris pertama dari tabel web_config
+        // Mengambil baris data pengaturan dengan ID 1 dari tabel web_config
         const { data, error } = await supabase
             .from('web_config')
             .select('*')
-            .limit(1)
+            .eq('id', 1)
             .single();
 
         if (error) throw error;
